@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI PM Interview Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-[#f6f3ee] text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useEffect, useMemo, useState } = React;
+
+      const allQuestions = [
+        {
+          id: 100,
+          category: "Strategy",
+          question:
+            "How would you prioritize features for a new AI assistant targeting professional developers?",
+          keyPoints: [
+            "Define target persona and primary job-to-be-done",
+            "Estimate impact (time saved, conversion, retention)",
+            "Assess feasibility and risk with engineering",
+            "Prioritize by desirability, viability, feasibility",
+          ],
+          sampleAnswer:
+            "I'd start by defining the primary persona (e.g., backend devs vs. data scientists) and their core JTBD. Then I quantify impact using proxies (time saved, task completion rate, acceptance rate). Next I assess feasibility and risk with engineering to surface unknowns. Finally I score opportunities by desirability, viability, feasibility and prioritize small bets that unlock learning and revenue potential.",
+        },
+        {
+          id: 101,
+          category: "Strategy",
+          question:
+            "How would you measure success for an auto-complete code suggestion feature?",
+          keyPoints: [
+            "Acceptance rate and edit-distance after insertion",
+            "Time-to-complete or keystrokes saved",
+            "Downstream correctness/bugs introduced",
+            "User satisfaction and retention signals",
+          ],
+          sampleAnswer:
+            "Success includes high acceptance rate with low post-editing, measurable keystroke/time savings, no increase in introduced bugs, and improved retention/engagement for target users. I'd instrument metrics and run A/B tests alongside qualitative interviews.",
+        },
+        {
+          id: 102,
+          category: "Strategy",
+          question:
+            "A stakeholder asks to ship a large visibility feature quickly. How do you evaluate trade-offs?",
+          keyPoints: [
+            "Clarify the user problem and measurable outcome",
+            "Identify lowest-effort experiment to test demand",
+            "Estimate technical and operational costs",
+            "Recommend phased rollout with success criteria",
+          ],
+          sampleAnswer:
+            "I first clarify the user problem and desired outcome. Then propose an experiment—an MVP or limited rollout—that tests demand with minimal engineering cost. I present trade-offs including technical debt and ops burden and recommend success criteria for each phase so we can iterate.",
+        },
+        {
+          id: 103,
+          category: "Metrics",
+          question: "How would you surface and act on model drift post-launch?",
+          keyPoints: [
+            "Define signal metrics and alerts (accuracy, latency, suggestion quality)",
+            "Run periodic evaluation on holdout and production slices",
+            "Have rollback and mitigation plans",
+            "Use user feedback and telemetry to prioritize fixes",
+          ],
+          sampleAnswer:
+            "Set monitoring for key signals, evaluate on representative slices, and create runbooks for rollback/mitigation. Use user feedback to prioritize fixes and plan retraining or feature gating when necessary.",
+        },
+        {
+          id: 104,
+          category: "Strategy",
+          question:
+            "Describe an experiment to validate that suggestions improve developer productivity.",
+          keyPoints: [
+            "Define measurable productivity metric (time-to-complete, acceptance rate)",
+            "Randomize exposure (control vs treatment)",
+            "Collect qualitative feedback and task-level observability",
+            "Run long enough to capture learning and variance",
+          ],
+          sampleAnswer:
+            "Design an A/B test measuring task completion time and suggestion acceptance, randomize users, collect surveys and qualitative sessions, and ensure sufficient duration to control for learning effects.",
+        },
+        {
+          id: 105,
+          category: "Strategy",
+          question:
+            "How do you decide between building a custom model vs. using a hosted LLM for a feature?",
+          keyPoints: [
+            "Compare performance vs cost and latency",
+            "Consider data privacy and compliance",
+            "Assess engineering effort and maintenance",
+            "Plan for iteration and fallback options",
+          ],
+          sampleAnswer:
+            "We weigh accuracy and latency needs against cost and data governance. If compliance or specialized behavior is required, custom models may be justified; otherwise a hosted LLM with mitigation (prompting, filtering) could accelerate time-to-market.",
+        },
+        {
+          id: 106,
+          category: "Strategy",
+          question:
+            "You're launching an AI feature that can occasionally hallucinate. How do you mitigate user harm?",
+          keyPoints: [
+            "Surface uncertainty and ask for confirmation for high-risk actions",
+            "Limit scope or domain of model outputs",
+            "Add guardrails and detection for hallucinations",
+            "Monitor real-world errors and have rollback plans",
+          ],
+          sampleAnswer:
+            "I limit the feature's scope, surface confidence, require user confirmation for risky outputs, and instrument hallucination detection. We monitor incidents and have fast rollback and notification paths for critical issues.",
+        },
+        {
+          id: 107,
+          category: "Strategy",
+          question:
+            "How would you build a pricing experiment for a premium AI capability?",
+          keyPoints: [
+            "Define value metrics tied to customer willingness to pay",
+            "Segment users and run controlled price exposures",
+            "Measure conversion lift and churn impact",
+            "Iterate on packaging and messaging",
+          ],
+          sampleAnswer:
+            "I identify value metrics, segment customers, and run pricing experiments with control/treatment groups to measure conversion and churn. Use learnings to tune packaging and messaging before wide rollout.",
+        },
+        {
+          id: 1,
+          category: "Metrics",
+          question:
+            "What metrics would you track for an AI coding assistant like GitHub Copilot?",
+          keyPoints: [
+            "Adoption: DAU, suggestions shown, acceptance rate",
+            "Quality: % accepted without edit, time saved, bugs introduced",
+            "Reliability: latency, error rates, uptime",
+            "Retention: weekly active users, churn, long-term engagement",
+          ],
+          sampleAnswer:
+            "I'd track adoption (DAU, suggestions shown, acceptance rate), quality (accept-without-edit rate, time saved, bug regressions), reliability (latency, error rates), and retention (WAU/MAU, churn). I'd also segment by persona and language to detect where it helps or hurts most.",
+        },
+        {
+          id: 42,
+          category: "Technical",
+          question:
+            "How would you design an evaluation framework for a new LLM feature?",
+          keyPoints: [
+            "Define success criteria before building",
+            "Mix of automated evals and human judgment",
+            "Test on diverse, representative data—not just easy cases",
+            "Track regression over time, not just point-in-time performance",
+          ],
+          sampleAnswer:
+            "I start by defining success criteria with the team before we build anything. What does good look like? Then I design a multi-layered eval: automated metrics for scale (BLEU, accuracy on benchmarks), human evaluation for subjective quality (preference rankings, Likert scales), and task-specific evals (does it actually help users complete their goal?). Critical: the eval data must be diverse and representative—not cherry-picked easy cases. I'd also build regression testing into the pipeline so we catch quality degradation early. The best evals are the ones that correlate with actual user satisfaction, so I'd validate our eval suite against real usage data.",
+        },
+        {
+          id: 43,
+          category: "Execution",
+          question:
+            "Your model team says a feature will take 6 months. Product needs it in 6 weeks. What do you do?",
+          keyPoints: [
+            "Understand why 6 months—scope, risk, or resource-constrained?",
+            "Find the MVP: what's the minimum that delivers value?",
+            "Negotiate scope, not timeline",
+            "Manage stakeholder expectations with data, not vibes",
+          ],
+          sampleAnswer:
+            "I dig into the 6 months. Is it 'we need to train a new model' or 'we need to build infrastructure' or 'we're blocked on something else'? Usually there's a version that's faster—the question is what we're trading off. I'd work with the team to find the smallest thing that proves the concept or unblocks the customer. Maybe it's a prompted solution instead of fine-tuned. Maybe it's limited rollout instead of GA. I present stakeholders with options: 'Here's what we can do in 6 weeks, here's what requires 6 months, here's the delta.' I never commit the team to something they've said is impossible—that destroys trust.",
+        },
+        {
+          id: 44,
+          category: "Execution",
+          question: "How do you run an effective product team in a research-heavy AI org?",
+          keyPoints: [
+            "Embed with research—attend reading groups, understand the science",
+            "Create translation layer between business requirements and research goals",
+            "Accept uncertainty: roadmaps are hypotheses, not commitments",
+            "Bridge research-product gaps with specific examples",
+          ],
+          sampleAnswer:
+            "The biggest failure mode is product and research operating as separate kingdoms. I invest heavily in cross-pollination: I attend research meetings, I make sure researchers see customer problems firsthand. I hire PMs who can read papers, even if they can't write them. Roadmaps look different—they're more like 'if X works, we'll do Y.' I create forcing functions for research-to-product handoffs: what's the eval? what's the integration path? what's the rollback plan? I also protect research from premature productization—shipping half-baked capabilities hurts everyone. The best AI PMs act as translators and prioritizers, not taskmasters.",
+        },
+        {
+          id: 45,
+          category: "Execution",
+          question:
+            "How do you prioritize when everything is 'P0' at a fast-moving AI startup?",
+          keyPoints: [
+            "Force stack-rank: no ties allowed",
+            "Criteria: revenue impact, strategic positioning, reversibility, learning value",
+            "Communicate: make prioritization visible, explain the 'why'",
+            "Protect focus: batch context-switches, shield team from chaos",
+          ],
+          sampleAnswer:
+            "If everything is P0, nothing is P0. I force stack-ranking with explicit criteria: revenue impact (now and future), strategic positioning, reversibility (can we undo if wrong?), and learning value (will this teach us something critical?). Then I communicate the prioritization visibly—everyone should know what we're doing and why, and what we're explicitly not doing. I also protect the team's focus: batch context-switches, shield them from stakeholder chaos, and make sure 'urgent' requests go through a filter. The PM's job is to absorb chaos so the team can focus on shipping.",
+        },
+        {
+          id: 46,
+          category: "Execution",
+          question: "How do you build credibility with a technical team as a PM?",
+          keyPoints: [
+            "Earn it through competence, not title",
+            "Do the homework: understand the technology deeply enough to engage",
+            "Respect their expertise while bringing your own",
+            "Deliver on your commitments consistently",
+          ],
+          sampleAnswer:
+            "Credibility is earned, not granted by title. I start by doing my homework—reading the papers, understanding the architecture, being able to engage in technical discussions without hand-waving. I don't pretend to be an engineer, but I respect their work enough to understand it. Then I prove my value: bring customer insights they wouldn't otherwise have, remove blockers, shield them from politics, and make their work more impactful. I never pull rank or say 'just build what I say.' Consistency matters—I deliver on my commitments, I don't overpromise to stakeholders, and I share credit generously.",
+        },
+        {
+          id: 47,
+          category: "Execution",
+          question: "Describe a time you had to make a product decision with incomplete data.",
+          keyPoints: [
+            "Set up: what was unknown and why it mattered",
+            "Action: what heuristics/proxies did you use?",
+            "Outcome: was the decision right? What did you learn?",
+            "Meta: how do you get comfortable with ambiguity?",
+          ],
+          sampleAnswer:
+            "At [company], we had to decide whether to invest in multimodal capabilities before we had clear signal on customer demand. The unknown: would enterprise customers actually use image understanding, or was it a nice-to-have? I used proxies: support ticket analysis (how often did customers mention images?), competitive landscape (where were others investing?), and design partner interviews (hypothetical demand). We decided to build a limited version and see what happened. Outcome: adoption was slower than hoped initially, but it unlocked deals we wouldn't have won otherwise. I learned to distinguish 'nice to have' in surveys from actual purchase intent—behavior over words.",
+        },
+        {
+          id: 48,
+          category: "Execution",
+          question: "How do you handle a situation where engineering and design fundamentally disagree?",
+          keyPoints: [
+            "Understand both perspectives deeply before mediating",
+            "Find the shared goal—usually user value",
+            "Look for creative solutions that satisfy both constraints",
+            "Sometimes PM has to make the call and own it",
+          ],
+          sampleAnswer:
+            "First, I make sure I understand both sides deeply—often disagreements stem from different assumptions or incomplete information sharing. Then I find common ground: what's the shared goal? Usually it's user value or business outcome, and we can work backward from there. I look for creative solutions that satisfy both constraints—often the best answer isn't either proposal but a third option. But sometimes there's no reconciliation, and the PM has to make the call. I'd decide based on what's best for users and the business, communicate my reasoning, and own the outcome. What I never do: let the disagreement fester or pick sides without understanding both.",
+        },
+      ];
+
+      const categories = [
+        { id: "all", name: "All Topics", icon: "🎯" },
+        { id: "Metrics", name: "Metrics & Analytics", icon: "📊" },
+        { id: "Strategy", name: "Product Strategy", icon: "🎯" },
+        { id: "Technical", name: "Technical Depth", icon: "⚙️" },
+        { id: "Execution", name: "Execution & Leadership", icon: "🚀" },
+      ];
+
+      const seededShuffle = (array, seed) => {
+        const shuffled = [...array];
+        let currentIndex = shuffled.length;
+        const seededRandom = () => {
+          seed = (seed * 9301 + 49297) % 233280;
+          return seed / 233280;
+        };
+        while (currentIndex > 0) {
+          const randomIndex = Math.floor(seededRandom() * currentIndex);
+          currentIndex--;
+          [shuffled[currentIndex], shuffled[randomIndex]] = [
+            shuffled[randomIndex],
+            shuffled[currentIndex],
+          ];
+        }
+        return shuffled;
+      };
+
+      const computeAutoRating = (answer, keyPoints) => {
+        if (!answer || !keyPoints || keyPoints.length === 0) {
+          return { score: 1, explanation: "No answer or no key points to compare." };
+        }
+        const lc = answer.toLowerCase();
+        const stopwords = new Set([
+          "the",
+          "and",
+          "for",
+          "that",
+          "with",
+          "what",
+          "when",
+          "how",
+          "a",
+          "an",
+          "to",
+          "of",
+          "in",
+          "is",
+          "are",
+          "we",
+          "i",
+        ]);
+        const matched = [];
+        const missed = [];
+        keyPoints.forEach((kp) => {
+          const words = kp
+            .toLowerCase()
+            .split(/[^a-z0-9]+/)
+            .filter(Boolean)
+            .filter((w) => !stopwords.has(w));
+          const found = words.some((w) => w.length > 3 && lc.includes(w));
+          if (found) matched.push(kp);
+          else missed.push(kp);
+        });
+
+        const ratio = matched.length / keyPoints.length;
+        const score = Math.max(1, Math.min(5, Math.round(ratio * 4) + 1));
+
+        let explanation = "";
+        if (matched.length > 0) {
+          explanation +=
+            `Matched points (${matched.length}/${keyPoints.length}): ` +
+            matched.map((m) => m).join("; ") +
+            ".\n\n";
+        }
+        if (missed.length > 0) {
+          explanation +=
+            `Missing or weak points (${missed.length}): ` +
+            missed.map((m) => m).join("; ") +
+            ".\n";
+        }
+        if (!explanation) explanation = "No clear matches found.";
+
+        return { score, explanation };
+      };
+
+      function App() {
+        const [gameState, setGameState] = useState("start");
+        const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+        const [answers, setAnswers] = useState([]);
+        const [currentAnswer, setCurrentAnswer] = useState("");
+        const [timeLeft, setTimeLeft] = useState(300);
+        const [isTimerRunning, setIsTimerRunning] = useState(false);
+        const [scores, setScores] = useState([]);
+        const [currentScore, setCurrentScore] = useState(0);
+        const [suggestedScores, setSuggestedScores] = useState([]);
+        const [suggestedScore, setSuggestedScore] = useState(null);
+        const [suggestedExplanation, setSuggestedExplanation] = useState("");
+        const [selectedQuestions, setSelectedQuestions] = useState([]);
+        const [questionCount, setQuestionCount] = useState(5);
+        const [sessionSeed, setSessionSeed] = useState(Date.now());
+        const [selectedCategories, setSelectedCategories] = useState(["all"]);
+
+        useEffect(() => {
+          let interval = null;
+          if (isTimerRunning && timeLeft > 0) {
+            interval = setInterval(() => {
+              setTimeLeft((time) => time - 1);
+            }, 1000);
+          } else if (timeLeft === 0) {
+            setIsTimerRunning(false);
+          }
+          return () => clearInterval(interval);
+        }, [isTimerRunning, timeLeft]);
+
+        const formatTime = (seconds) => {
+          const mins = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          return `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+
+        const getFilteredQuestions = () => {
+          if (selectedCategories.includes("all")) {
+            return allQuestions;
+          }
+          return allQuestions.filter((q) => selectedCategories.includes(q.category));
+        };
+
+        const toggleCategory = (categoryId) => {
+          if (categoryId === "all") {
+            setSelectedCategories(["all"]);
+          } else {
+            let newSelection = selectedCategories.filter((c) => c !== "all");
+            if (newSelection.includes(categoryId)) {
+              newSelection = newSelection.filter((c) => c !== categoryId);
+              if (newSelection.length === 0) {
+                newSelection = ["all"];
+              }
+            } else {
+              newSelection = [...newSelection, categoryId];
+            }
+            setSelectedCategories(newSelection);
+          }
+          setSessionSeed(Date.now());
+        };
+
+        const startPractice = () => {
+          const newSeed = Date.now();
+          setSessionSeed(newSeed);
+          const filtered = getFilteredQuestions();
+          const shuffled = seededShuffle(filtered, newSeed);
+          const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
+          setSelectedQuestions(selected);
+          setCurrentQuestionIndex(0);
+          setAnswers([]);
+          setScores([]);
+          setSuggestedScores([]);
+          setCurrentAnswer("");
+          setTimeLeft(300);
+          setIsTimerRunning(false);
+          setGameState("question");
+        };
+
+        const reshuffleQuestions = () => {
+          setSessionSeed(Date.now());
+        };
+
+        const handleStartTimer = () => setIsTimerRunning(true);
+        const handlePauseTimer = () => setIsTimerRunning(false);
+
+        const handleSubmitAnswer = () => {
+          setIsTimerRunning(false);
+          setAnswers([...answers, currentAnswer]);
+          const currentQuestion = selectedQuestions[currentQuestionIndex];
+          const auto = computeAutoRating(
+            currentAnswer,
+            currentQuestion?.keyPoints || []
+          );
+          setSuggestedScore(auto.score);
+          setSuggestedExplanation(auto.explanation);
+          setGameState("review");
+        };
+
+        const handleScoreSubmit = () => {
+          setScores([...scores, currentScore]);
+          setSuggestedScores([
+            ...suggestedScores,
+            suggestedScore !== null ? suggestedScore : currentScore,
+          ]);
+          setSuggestedScore(null);
+          setSuggestedExplanation("");
+          if (currentQuestionIndex < selectedQuestions.length - 1) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+            setCurrentAnswer("");
+            setCurrentScore(0);
+            setTimeLeft(300);
+            setGameState("question");
+          } else {
+            setGameState("results");
+          }
+        };
+
+        const handleRestart = () => {
+          setGameState("start");
+          setCurrentQuestionIndex(0);
+          setAnswers([]);
+          setScores([]);
+          setSuggestedScores([]);
+          setCurrentAnswer("");
+          setTimeLeft(300);
+          setIsTimerRunning(false);
+          setSessionSeed(Date.now());
+        };
+
+        const getScoreColor = (score) => {
+          if (score >= 4) return "text-green-600";
+          if (score >= 3) return "text-yellow-600";
+          return "text-red-600";
+        };
+
+        const getScoreBg = (score) => {
+          if (score >= 4) return "bg-green-100 border-green-300";
+          if (score >= 3) return "bg-yellow-100 border-yellow-300";
+          return "bg-red-100 border-red-300";
+        };
+
+        const getAverageScore = () => {
+          if (scores.length === 0) return 0;
+          return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+        };
+
+        const getTimerColor = () => {
+          if (timeLeft > 180) return "text-green-600";
+          if (timeLeft > 60) return "text-yellow-600";
+          return "text-red-600";
+        };
+
+        const filteredQuestions = useMemo(() => getFilteredQuestions(), [selectedCategories]);
+        const previewQuestions = seededShuffle(filteredQuestions, sessionSeed).slice(
+          0,
+          Math.min(questionCount, filteredQuestions.length)
+        );
+
+        if (gameState === "start") {
+          return (
+            <div className="min-h-screen bg-[#f6f3ee] text-slate-900 p-4">
+              <div className="max-w-3xl mx-auto">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4 text-3xl">
+                      🎯
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                      AI PM Interview Practice
+                    </h1>
+                    <p className="text-gray-600">
+                      Senior/Lead PM • AI-Native Startups • LLMs & GenAI
+                    </p>
+                    <p className="text-sm text-amber-600 mt-2 font-medium">
+                      {allQuestions.length} questions • Fresh random mix each session
+                    </p>
+                  </div>
+
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-gray-600">🔍</span>
+                      <h3 className="font-semibold text-gray-800">Focus Areas</h3>
+                      <span className="text-xs text-gray-500">
+                        ({filteredQuestions.length} questions available)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {categories.map((cat) => {
+                        const isSelected = selectedCategories.includes(cat.id);
+                        const count =
+                          cat.id === "all"
+                            ? allQuestions.length
+                            : allQuestions.filter((q) => q.category === cat.id).length;
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => toggleCategory(cat.id)}
+                            className={`p-3 rounded-xl text-left transition-all border-2 ${
+                              isSelected
+                                ? "bg-amber-100 border-amber-400 text-amber-900"
+                                : "bg-gray-50 border-gray-200 text-gray-600 hover:border-amber-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{cat.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{cat.name}</div>
+                                <div className="text-xs opacity-70">{count} Qs</div>
+                              </div>
+                              {isSelected && cat.id !== "all" && (
+                                <span className="text-gray-500">✕</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Number of questions:
+                    </label>
+                    <div className="flex gap-2">
+                      {[3, 5, 8, 10].map((num) => (
+                        <button
+                          key={num}
+                          onClick={() => setQuestionCount(num)}
+                          disabled={num > filteredQuestions.length}
+                          className={`flex-1 py-2 rounded-lg font-medium transition-all ${
+                            questionCount === num
+                              ? "bg-amber-600 text-white"
+                              : num > filteredQuestions.length
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Estimated time: {Math.min(questionCount, filteredQuestions.length) * 6}-
+                      {Math.min(questionCount, filteredQuestions.length) * 8} minutes
+                    </p>
+                  </div>
+
+                  <div className="mb-6 bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Questions for this session:
+                      </h4>
+                      <button
+                        onClick={reshuffleQuestions}
+                        className="flex items-center gap-1 text-amber-600 hover:text-amber-700 text-sm font-medium"
+                      >
+                        🔀 Shuffle
+                      </button>
+                    </div>
+                    {filteredQuestions.length === 0 ? (
+                      <p className="text-gray-500 text-sm">
+                        No questions match your selected categories.
+                      </p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {previewQuestions.map((q, idx) => (
+                          <li key={q.id} className="flex items-start gap-2 text-sm">
+                            <span className="bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <span className="text-gray-600">
+                              <span className="text-amber-600 font-medium">[{q.category}]</span>{" "}
+                              {q.question.length > 55
+                                ? q.question.substring(0, 55) + "..."
+                                : q.question}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={startPractice}
+                    disabled={filteredQuestions.length === 0}
+                    className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-xl transition-all flex items-center justify-center gap-2 text-lg"
+                  >
+                    ▶️ Start Practice
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        if (gameState === "question") {
+          const currentQuestion = selectedQuestions[currentQuestionIndex];
+          return (
+            <div className="min-h-screen bg-[#f6f3ee] text-slate-900 p-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleRestart}
+                      className="flex items-center gap-1 text-amber-700 hover:text-slate-900 transition-colors text-sm"
+                    >
+                      🏠 Home
+                    </button>
+                    <span className="text-amber-500">|</span>
+                    <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      {currentQuestion.category}
+                    </span>
+                    <span className="text-amber-700 text-sm">
+                      Q{currentQuestionIndex + 1}/{selectedQuestions.length}
+                    </span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 text-2xl font-mono font-bold ${
+                      getTimerColor()
+                    }`}
+                  >
+                    ⏱️ {formatTime(timeLeft)}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6 leading-relaxed">
+                    {currentQuestion.question}
+                  </h2>
+
+                  {!isTimerRunning && timeLeft === 300 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                      <p className="text-blue-800 text-sm">
+                        <strong>Tip:</strong> Take a moment to structure your thoughts,
+                        then click "Start Timer" when ready. Aim for a 2-3 minute
+                        response covering key frameworks and specific examples.
+                      </p>
+                    </div>
+                  )}
+
+                  <textarea
+                    value={currentAnswer}
+                    onChange={(e) => setCurrentAnswer(e.target.value)}
+                    placeholder="Type your answer here... Structure your response as if you're speaking to an interviewer."
+                    className="w-full h-64 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-amber-500 focus:outline-none text-gray-700"
+                    disabled={timeLeft === 0}
+                  />
+
+                  <div className="flex items-center justify-between mt-6">
+                    <div className="flex gap-3">
+                      {!isTimerRunning ? (
+                        <button
+                          onClick={handleStartTimer}
+                          disabled={timeLeft === 0}
+                          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-medium transition-all"
+                        >
+                          ▶️ {timeLeft === 300 ? "Start Timer" : "Resume"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handlePauseTimer}
+                          className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-xl font-medium transition-all"
+                        >
+                          ⏸️ Pause
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleSubmitAnswer}
+                      disabled={currentAnswer.trim().length < 50}
+                      className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white px-8 py-3 rounded-xl font-medium transition-all"
+                    >
+                      Submit Answer ➡️
+                    </button>
+                  </div>
+                  {currentAnswer.trim().length < 50 && currentAnswer.length > 0 && (
+                    <p className="text-sm text-gray-500 mt-3">
+                      Write at least 50 characters to submit ({currentAnswer.length}/50)
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-white/10 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-amber-500 h-full transition-all duration-300"
+                    style={{
+                      width: `${
+                        ((currentQuestionIndex + 1) / selectedQuestions.length) * 100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        if (gameState === "review") {
+          const currentQuestion = selectedQuestions[currentQuestionIndex];
+          return (
+            <div className="min-h-screen bg-[#f6f3ee] text-slate-900 p-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={handleRestart}
+                    className="flex items-center gap-1 text-amber-700 hover:text-slate-900 transition-colors text-sm"
+                  >
+                    🏠 Home
+                  </button>
+                  <span className="text-amber-700 text-sm">
+                    Q{currentQuestionIndex + 1}/{selectedQuestions.length}
+                  </span>
+                </div>
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-slate-900">Review & Score</h2>
+                  <p className="text-amber-700">Compare your answer to the model response</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-white rounded-2xl shadow-xl p-6">
+                    <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 text-sm">You</span>
+                      </div>
+                      Your Answer
+                    </h3>
+                    <div className="bg-gray-50 rounded-xl p-4 h-48 overflow-y-auto text-gray-700 text-sm">
+                      {answers[currentQuestionIndex]}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl shadow-xl p-6">
+                    <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        ✅
+                      </div>
+                      Strong Answer
+                    </h3>
+                    <div className="bg-green-50 rounded-xl p-4 h-48 overflow-y-auto text-gray-700 text-sm">
+                      {currentQuestion.sampleAnswer}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    ⚠️ Key Points to Hit
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {currentQuestion.keyPoints.map((point, idx) => (
+                      <div key={idx} className="flex items-start gap-2 bg-amber-50 rounded-lg p-3">
+                        <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-amber-700 text-xs font-bold">{idx + 1}</span>
+                        </div>
+                        <span className="text-sm text-amber-900">{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-6">
+                  <h3 className="font-bold text-gray-800 mb-4">Rate Your Answer</h3>
+                  {suggestedScore !== null && (
+                    <div className="mb-4">
+                      <div className="text-sm text-gray-700 mb-2">
+                        Suggested score:{" "}
+                        <span className={`font-bold ${getScoreColor(suggestedScore)}`}>
+                          {suggestedScore}/5
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded mb-2 whitespace-pre-wrap">
+                        {suggestedExplanation}
+                      </div>
+                      <button
+                        onClick={() => setCurrentScore(suggestedScore)}
+                        className="text-sm text-amber-600 hover:underline"
+                      >
+                        Use suggested score
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex gap-3 mb-6">
+                    {[1, 2, 3, 4, 5].map((score) => (
+                      <button
+                        key={score}
+                        onClick={() => setCurrentScore(score)}
+                        className={`flex-1 py-4 rounded-xl font-bold text-lg transition-all border-2 ${
+                          currentScore === score
+                            ? "bg-amber-600 text-white border-amber-600"
+                            : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"
+                        }`}
+                      >
+                        {score}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-500 mb-6 px-2">
+                    <span>Missed key points</span>
+                    <span>Nailed it</span>
+                  </div>
+                  <button
+                    onClick={handleScoreSubmit}
+                    disabled={currentScore === 0}
+                    className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    {currentQuestionIndex < selectedQuestions.length - 1
+                      ? "Next Question"
+                      : "See Results"}
+                    ➡️
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        if (gameState === "results") {
+          const avgScore = getAverageScore();
+          const categoryBreakdown = {};
+          selectedQuestions.forEach((q, idx) => {
+            if (!categoryBreakdown[q.category]) {
+              categoryBreakdown[q.category] = { total: 0, sum: 0 };
+            }
+            categoryBreakdown[q.category].total++;
+            categoryBreakdown[q.category].sum += scores[idx];
+          });
+
+          return (
+            <div className="min-h-screen bg-[#f6f3ee] text-slate-900 p-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="mb-4">
+                  <button
+                    onClick={handleRestart}
+                    className="flex items-center gap-1 text-amber-700 hover:text-slate-900 transition-colors text-sm"
+                  >
+                    🏠 Home
+                  </button>
+                </div>
+                <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-amber-100 rounded-full mb-4 text-3xl">
+                    🏆
+                  </div>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                    Practice Complete!
+                  </h1>
+                  <p className="text-gray-600 mb-6">
+                    Here's how you did across {selectedQuestions.length} questions
+                  </p>
+
+                  <div className="flex justify-center gap-8 mb-6">
+                    <div className="text-center">
+                      <div className={`text-5xl font-bold ${getScoreColor(avgScore)}`}>
+                        {avgScore}
+                      </div>
+                      <div className="text-gray-500 text-sm mt-1">Average Score</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-5xl font-bold text-amber-600">
+                        {scores.filter((s) => s >= 4).length}
+                      </div>
+                      <div className="text-gray-500 text-sm mt-1">Strong Answers</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-5xl font-bold text-gray-600">
+                        {scores.filter((s) => s <= 2).length}
+                      </div>
+                      <div className="text-gray-500 text-sm mt-1">Needs Work</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Score by Category</h4>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {Object.entries(categoryBreakdown).map(([cat, data]) => (
+                        <div key={cat} className="bg-white rounded-lg px-4 py-2 border">
+                          <span className="text-sm text-gray-600">{cat}</span>
+                          <span className={`ml-2 font-bold ${getScoreColor(data.sum / data.total)}`}>
+                            {(data.sum / data.total).toFixed(1)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                  <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    📈 Detailed Breakdown
+                  </h2>
+                  <div className="space-y-4">
+                    {selectedQuestions.map((q, idx) => (
+                      <div
+                        key={q.id}
+                        className={`border-2 rounded-xl p-4 ${getScoreBg(scores[idx])}`}
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex-1">
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                              {q.category}
+                            </span>
+                            <h3 className="font-semibold text-gray-800 mt-1">
+                              {q.question}
+                            </h3>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-bold ${getScoreColor(scores[idx])}`}>
+                              {scores[idx]}/5
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Suggested:{" "}
+                              <span className={getScoreColor(suggestedScores[idx] || 0)}>
+                                {suggestedScores[idx] || "-"}/5
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">
+                              Your Answer
+                            </h4>
+                            <p className="text-sm text-gray-700 bg-white/50 rounded-lg p-3 h-32 overflow-y-auto">
+                              {answers[idx]}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">
+                              Key Points
+                            </h4>
+                            <ul className="text-sm text-gray-700 bg-white/50 rounded-lg p-3 h-32 overflow-y-auto space-y-1">
+                              {q.keyPoints.map((point, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-amber-600">•</span>
+                                  {point}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleRestart}
+                    className="flex-1 bg-white hover:bg-gray-50 text-amber-600 font-semibold py-4 rounded-xl transition-all flex items-center justify-center gap-2 border-2 border-amber-200"
+                  >
+                    🔁 Practice Again (New Questions)
+                  </button>
+                </div>
+                <p className="text-center text-amber-700 text-sm mt-4">
+                  Each session gives you a fresh random selection from {allQuestions.length} questions
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        return null;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
